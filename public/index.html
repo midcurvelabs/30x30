@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>30x30 — Build 30 Things in 30 Days</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #222222;
+    --accent: #e8f53a;
+    --accent2: #ff5c35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --radius: 4px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── HERO ── */
+  #screen-hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 0;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 10px;
+    margin-bottom: 32px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(52px, 10vw, 88px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+  }
+
+  h1 .accent { color: var(--accent); }
+  h1 .dim { color: var(--muted); }
+
+  .hero-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 24px 0 48px;
+    line-height: 1.7;
+    max-width: 420px;
+  }
+
+  .hero-sub strong { color: var(--text); font-weight: 500; }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent);
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 16px 32px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary:hover { background: #f5ff60; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 16px 0;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .btn-secondary:hover { color: var(--text); }
+
+  .hero-stats {
+    display: flex;
+    gap: 32px;
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  .stat-item { display: flex; flex-direction: column; gap: 4px; }
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* ── QUIZ ── */
+  #screen-quiz { display: none; padding: 60px 0; min-height: 100vh; }
+
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    margin-bottom: 48px;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.4s ease;
+  }
+  .progress-label {
+    position: absolute;
+    right: 0;
+    top: 8px;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .question-header {
+    margin-bottom: 40px;
+  }
+
+  .q-num {
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .q-text {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(22px, 4vw, 32px);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .options-grid {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+
+  .option-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+
+  .option-btn:hover { border-color: var(--accent); background: var(--surface2); }
+  .option-btn.selected { border-color: var(--accent); background: #1a1e05; color: var(--accent); }
+
+  .option-icon {
+    font-size: 18px;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .multi-hint {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .nav-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .btn-back {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-back:hover { border-color: var(--muted); color: var(--text); }
+
+  /* ── EMAIL ── */
+  #screen-email { display: none; padding: 60px 0; min-height: 100vh; }
+
+  .email-wrap { max-width: 480px; }
+
+  .email-wrap h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .email-wrap p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 32px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+  }
+
+  .input-field {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-right: none;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 14px 16px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .input-field:focus { border-color: var(--accent); }
+  .input-field::placeholder { color: var(--muted); }
+
+  .privacy-note { font-size: 10px; color: var(--muted); }
+
+  /* ── RESULTS ── */
+  #screen-results { display: none; padding: 60px 0 100px; }
+
+  .results-header {
+    margin-bottom: 48px;
+  }
+
+  .results-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(24px, 4vw, 36px);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+
+  .results-header p { font-size: 12px; color: var(--muted); }
+
+  .ideas-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 48px; }
+
+  .idea-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .idea-card:hover { border-color: #444; }
+
+  .idea-card.selected {
+    border-color: var(--accent);
+    background: #141a03;
+  }
+
+  .idea-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    color: #000;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .idea-meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid;
+  }
+
+  .badge-format { border-color: #333; color: var(--muted); }
+  .badge-diff-easy { border-color: #2d5a27; color: #6dbf62; }
+  .badge-diff-medium { border-color: #5a4a00; color: #d4a017; }
+  .badge-diff-hard { border-color: #5a1a00; color: #e05a2b; }
+
+  .idea-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .idea-why {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .idea-tools {
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+
+  .idea-days {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+
+  .idea-card.selected .idea-days { display: block; }
+
+  .day-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+
+  .day-num {
+    color: var(--accent);
+    font-weight: 500;
+    min-width: 40px;
+    flex-shrink: 0;
+  }
+
+  .day-task { color: var(--muted); line-height: 1.5; }
+
+  /* paywall section */
+  .paywall-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    text-align: center;
+  }
+
+  .paywall-block h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .paywall-block p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  .paywall-features {
+    list-style: none;
+    text-align: left;
+    max-width: 320px;
+    margin: 0 auto 28px;
+  }
+
+  .paywall-features li {
+    font-size: 12px;
+    padding: 6px 0;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .paywall-features li:last-child { border-bottom: none; }
+
+  .check { color: var(--accent); flex-shrink: 0; }
+
+  .price-tag {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .price-sub { font-size: 11px; color: var(--muted); margin-bottom: 24px; }
+
+  .select-hint {
+    font-size: 11px;
+    color: var(--accent2);
+    text-align: center;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  /* ── FULL PLAN ── */
+  #screen-plan { display: none; padding: 60px 0 100px; }
+
+  #screen-plan h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(24px, 4vw, 36px);
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  #screen-plan .subtitle { font-size: 12px; color: var(--muted); margin-bottom: 48px; }
+
+  .week-block { margin-bottom: 40px; }
+
+  .week-label {
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .plan-item {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid #161616;
+    align-items: start;
+  }
+
+  .plan-day-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--muted);
+    line-height: 1;
+  }
+
+  .plan-day-content {}
+  .plan-day-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .plan-day-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* ── LOADING ── */
+  .loading-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: 20px;
+  }
+
+  .loading-state.active { display: flex; }
+
+  .loader {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── UTILS ── */
+  .screen { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .error-msg {
+    background: #1a0a0a;
+    border: 1px solid #5a1a00;
+    color: #e05a2b;
+    font-size: 12px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    display: none;
+  }
+
+  @media (max-width: 480px) {
+    .hero-stats { gap: 20px; }
+    .input-row { flex-direction: column; }
+    .input-field { border-right: 1px solid var(--border); border-bottom: none; }
+    .btn-primary { width: 100%; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════ HERO ══════════════════════════════ -->
+<div id="screen-hero" class="screen">
+  <div class="container">
+    <span class="tag">Rolling Challenge</span>
+    <h1>
+      <span class="accent">30</span> things<br>
+      <span class="dim">in</span> 30 days<span class="accent">.</span>
+    </h1>
+    <p class="hero-sub">
+      Apps. Dashboards. Videos. Automations. Designs.<br>
+      <strong>One thing per day. Ship it. Share it.</strong><br>
+      Don't know what to build? We'll figure that out.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:0; align-items:flex-start;">
+      <button class="btn-primary" onclick="startQuiz()">
+        Find my 30 ideas →
+      </button>
+      <button class="btn-secondary" onclick="startQuiz()">
+        takes 2 minutes
+      </button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-num" id="counter-builders">—</span>
+        <span class="stat-label">builders active</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num" id="counter-things">—</span>
+        <span class="stat-label">things shipped</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">∞</span>
+        <span class="stat-label">excuses accepted</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ QUIZ ══════════════════════════════ -->
+<div id="screen-quiz" class="screen">
+  <div class="container">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      <span class="progress-label" id="progress-label">1 / 5</span>
+    </div>
+    <div id="question-area"></div>
+    <div class="nav-row">
+      <button class="btn-back" id="btn-back" onclick="prevQuestion()" style="display:none">← Back</button>
+      <button class="btn-primary" id="btn-next" onclick="nextQuestion()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ EMAIL ══════════════════════════════ -->
+<div id="screen-email" class="screen">
+  <div class="container">
+    <div class="email-wrap">
+      <h2>Almost there.<br><span style="color:var(--accent)">Where do we send your ideas?</span></h2>
+      <p>Drop your email and we'll send you your personalized challenge ideas — plus daily build inspiration for 30 days. No fluff.</p>
+      <div class="input-row">
+        <input class="input-field" type="text" id="email-name" placeholder="Your name" />
+        <input class="input-field" type="email" id="email-addr" placeholder="your@email.com" style="border-right: 1px solid var(--border);" />
+        <button class="btn-primary" onclick="submitEmail()">Go →</button>
+      </div>
+      <p class="privacy-note">No spam. Unsubscribe anytime. We're builders too.</p>
+      <div class="error-msg" id="email-error">Please enter your name and a valid email.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ RESULTS ══════════════════════════════ -->
+<div id="screen-results" class="screen">
+  <div class="container">
+    <div class="loading-state" id="results-loading">
+      <div class="loader"></div>
+      <span class="loading-text">Generating your ideas...</span>
+    </div>
+    <div id="results-content" style="display:none">
+      <div class="results-header">
+        <h2>Your 3 challenge ideas<span style="color:var(--accent)">.</span></h2>
+        <p>Tap an idea to see the first 3 days. Pick 1+ to unlock your full 30-day plan.</p>
+      </div>
+      <div class="ideas-list" id="ideas-list"></div>
+      <p class="select-hint" id="select-hint">← Select at least one idea to unlock your plan</p>
+      <div class="paywall-block">
+        <h3>Turn this into a full<br><span style="color:var(--accent)">30-day roadmap</span></h3>
+        <p>Pick 1 or more ideas above. We'll build you a complete day-by-day plan — so the only thing left to do is ship.</p>
+        <ul class="paywall-features">
+          <li><span class="check">✓</span> Full 30-day challenge plan, built around your picks</li>
+          <li><span class="check">✓</span> Daily build prompts — no blank page ever</li>
+          <li><span class="check">✓</span> Tool suggestions for every day</li>
+          <li><span class="check">✓</span> Weekly theme structure (Foundation → Push → Risk → Ship)</li>
+          <li><span class="check">✓</span> Access to the 30x30 Telegram community</li>
+        </ul>
+        <div class="price-tag">€9</div>
+        <div class="price-sub">one-time · no subscription</div>
+        <button class="btn-primary" onclick="unlockPlan()" style="width:100%; justify-content:center;">
+          Build my 30-day plan →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ FULL PLAN ══════════════════════════════ -->
+<div id="screen-plan" class="screen">
+  <div class="container">
+    <div class="loading-state" id="plan-loading">
+      <div class="loader"></div>
+      <span class="loading-text">Building your 30-day plan...</span>
+    </div>
+    <div id="plan-content" style="display:none">
+      <span class="tag">Your 30-day plan</span>
+      <h2>30 days.<br><span style="color:var(--accent)">No excuses.</span></h2>
+      <p class="subtitle">One thing per day. Ship it to vibecode.fun. Share the process.</p>
+      <div id="plan-weeks"></div>
+      <div style="margin-top:48px; padding-top:32px; border-top:1px solid var(--border); text-align:center;">
+        <p style="font-size:12px; color:var(--muted); margin-bottom:16px;">Ready? Start today. Post to vibecode.fun with <span style="color:var(--accent)">#30x30</span></p>
+        <a href="https://vibecode.fun" target="_blank" class="btn-primary" style="text-decoration:none; display:inline-flex;">
+          Go to vibecode.fun →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════
+const state = {
+  currentQ: 0,
+  answers: {},
+  email: '',
+  name: '',
+  ideas: [],
+  selectedIdeas: []
+};
+
+// ══════════════════════════════════════════════════════════════════════
+// QUESTIONS
+// ══════════════════════════════════════════════════════════════════════
+const questions = [
+  {
+    id: 'background',
+    text: 'What\'s your background?',
+    multi: false,
+    options: [
+      { value: 'builder', label: 'Builder / developer', icon: '⚙️' },
+      { value: 'designer', label: 'Designer', icon: '✏️' },
+      { value: 'marketer', label: 'Marketer / growth', icon: '📈' },
+      { value: 'creator', label: 'Content creator', icon: '🎬' },
+      { value: 'beginner', label: 'Curious beginner', icon: '🌱' }
+    ]
+  },
+  {
+    id: 'format',
+    text: 'What do you want to make?',
+    multi: true,
+    options: [
+      { value: 'apps', label: 'Apps & tools', icon: '🛠️' },
+      { value: 'content', label: 'Videos & content', icon: '📹' },
+      { value: 'dashboards', label: 'Dashboards & data', icon: '📊' },
+      { value: 'automations', label: 'Automations & AI', icon: '🤖' },
+      { value: 'designs', label: 'Designs & visuals', icon: '🎨' },
+      { value: 'mix', label: 'Mix it up', icon: '🎲' }
+    ]
+  },
+  {
+    id: 'time',
+    text: 'How much time per day can you commit?',
+    multi: false,
+    options: [
+      { value: '30min', label: '30 minutes — quick & scrappy', icon: '⚡' },
+      { value: '1hr', label: '1 hour — focused sessions', icon: '🕐' },
+      { value: '2hr', label: '2+ hours — going deep', icon: '🔥' }
+    ]
+  },
+  {
+    id: 'tools',
+    text: 'What tools do you know (or want to learn)?',
+    multi: true,
+    options: [
+      { value: 'nocode', label: 'No-code tools', icon: '🧩' },
+      { value: 'ai', label: 'Claude / AI tools', icon: '🧠' },
+      { value: 'code', label: 'HTML / JS / Python', icon: '💻' },
+      { value: 'figma', label: 'Figma / design', icon: '🎨' },
+      { value: 'n8n', label: 'n8n / automations', icon: '🔗' },
+      { value: 'video', label: 'Video editing', icon: '🎞️' },
+      { value: 'none', label: 'None yet — teach me', icon: '🙋' }
+    ]
+  },
+  {
+    id: 'goal',
+    text: 'What\'s your main goal?',
+    multi: false,
+    options: [
+      { value: 'portfolio', label: 'Build a portfolio', icon: '📁' },
+      { value: 'learn', label: 'Learn new skills', icon: '🎓' },
+      { value: 'audience', label: 'Grow an audience', icon: '📣' },
+      { value: 'ship', label: 'Just ship things', icon: '🚀' },
+      { value: 'all', label: 'All of it', icon: '💥' }
+    ]
+  }
+];
+
+// ══════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════════
+function show(id) {
+  ['screen-hero','screen-quiz','screen-email','screen-results','screen-plan'].forEach(s => {
+    document.getElementById(s).style.display = 'none';
+  });
+  document.getElementById(id).style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function startQuiz() {
+  state.currentQ = 0;
+  show('screen-quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[state.currentQ];
+  const pct = ((state.currentQ) / questions.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${state.currentQ + 1} / ${questions.length}`;
+  document.getElementById('btn-back').style.display = state.currentQ > 0 ? 'inline-flex' : 'none';
+
+  const current = state.answers[q.id] || [];
+
+  const html = `
+    <div class="question-header">
+      <div class="q-num">Question ${state.currentQ + 1}</div>
+      <div class="q-text">${q.text}</div>
+    </div>
+    ${q.multi ? '<p class="multi-hint">Select all that apply</p>' : ''}
+    <div class="options-grid">
+      ${q.options.map(opt => `
+        <button class="option-btn ${current.includes(opt.value) ? 'selected' : ''}"
+          onclick="selectOption('${q.id}', '${opt.value}', ${q.multi})">
+          <span class="option-icon">${opt.icon}</span>
+          ${opt.label}
+        </button>
+      `).join('')}
+    </div>
+  `;
+  document.getElementById('question-area').innerHTML = html;
+}
+
+function selectOption(qId, value, multi) {
+  if (!state.answers[qId]) state.answers[qId] = [];
+  if (multi) {
+    const idx = state.answers[qId].indexOf(value);
+    if (idx > -1) state.answers[qId].splice(idx, 1);
+    else state.answers[qId].push(value);
+  } else {
+    state.answers[qId] = [value];
+  }
+  renderQuestion();
+}
+
+function nextQuestion() {
+  const q = questions[state.currentQ];
+  if (!state.answers[q.id] || state.answers[q.id].length === 0) {
+    document.getElementById('question-area').querySelector('.q-text').style.color = 'var(--accent2)';
+    setTimeout(() => {
+      const el = document.getElementById('question-area').querySelector('.q-text');
+      if (el) el.style.color = '';
+    }, 600);
+    return;
+  }
+  if (state.currentQ < questions.length - 1) {
+    state.currentQ++;
+    renderQuestion();
+  } else {
+    show('screen-email');
+  }
+}
+
+function prevQuestion() {
+  if (state.currentQ > 0) {
+    state.currentQ--;
+    renderQuestion();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// EMAIL
+// ══════════════════════════════════════════════════════════════════════
+function submitEmail() {
+  const name = document.getElementById('email-name').value.trim();
+  const email = document.getElementById('email-addr').value.trim();
+  const errEl = document.getElementById('email-error');
+
+  if (!name || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  state.name = name;
+  state.email = email;
+  generateIdeas();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// IDEA GENERATION
+// ══════════════════════════════════════════════════════════════════════
+function buildQuizSummary() {
+  const a = state.answers;
+  const bg = { builder:'Builder/developer', designer:'Designer', marketer:'Marketer/growth', creator:'Content creator', beginner:'Curious beginner' };
+  const fmt = { apps:'Apps & tools', content:'Videos & content', dashboards:'Dashboards & data', automations:'Automations & AI', designs:'Designs & visuals', mix:'Mix it up' };
+  const tools = { nocode:'No-code tools', ai:'Claude/AI tools', code:'HTML/JS/Python', figma:'Figma/design', n8n:'n8n/automations', video:'Video editing', none:'No tools yet' };
+  const goals = { portfolio:'Build a portfolio', learn:'Learn new skills', audience:'Grow an audience', ship:'Just ship things', all:'All of it' };
+  const time = { '30min':'30 minutes/day', '1hr':'1 hour/day', '2hr':'2+ hours/day' };
+
+  return `
+Background: ${(a.background||[]).map(v => bg[v]).join(', ')}
+Wants to make: ${(a.format||[]).map(v => fmt[v]).join(', ')}
+Time available: ${(a.time||[]).map(v => time[v]).join(', ')}
+Tools: ${(a.tools||[]).map(v => tools[v]).join(', ')}
+Goal: ${(a.goal||[]).map(v => goals[v]).join(', ')}
+  `.trim();
+}
+
+async function generateIdeas() {
+  show('screen-results');
+  document.getElementById('results-loading').classList.add('active');
+  document.getElementById('results-content').style.display = 'none';
+
+  const prompt = `You are an idea generator for a "30x30 challenge" — where people build or create 30 things in 30 days. One creation per day, shipped publicly.
+
+The user profile:
+${buildQuizSummary()}
+
+Generate exactly 3 challenge ideas that are:
+- Personalized to this person's background, tools, and goals
+- Completable in ONE day given their time availability
+- Specific and concrete, not generic
+- Genuinely interesting — think like someone who's actually shipped things, not a consultant
+
+Respond ONLY with a valid JSON array (no markdown, no preamble) in this exact format:
+[
+  {
+    "title": "Challenge name (short, punchy, 3-6 words)",
+    "format": "app|video|dashboard|automation|design|tool|other",
+    "difficulty": "Easy|Medium|Hard",
+    "tools": ["tool1", "tool2"],
+    "why": "One sentence explaining why this fits this specific person.",
+    "days": [
+      {"day": 1, "task": "What to do on day 1 (concrete action)"},
+      {"day": 2, "task": "What to do on day 2"},
+      {"day": 3, "task": "What to do on day 3"}
+    ]
+  }
+]`;
+
+  try {
+    const res = await fetch("/api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content.map(i => i.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    state.ideas = JSON.parse(clean);
+    renderIdeas();
+  } catch(e) {
+    // Fallback demo ideas
+    state.ideas = [
+      {
+        title: "Daily AI Tool Review",
+        format: "video",
+        difficulty: "Easy",
+        tools: ["Phone camera", "CapCut", "Claude"],
+        why: "You can create one short review per day using tools you already know.",
+        days: [
+          {day:1, task:"Pick an AI tool, spend 20 min exploring it, record a 60-sec take"},
+          {day:2, task:"Edit and post your first review, set up a simple posting schedule"},
+          {day:3, task:"Try a second tool, compare it to day 1 in your review"}
+        ]
+      },
+      {
+        title: "Micro SaaS Landing Pages",
+        format: "app",
+        difficulty: "Medium",
+        tools: ["HTML/CSS", "Claude", "Vercel"],
+        why: "Builds your portfolio fast — ship one landing page concept per day.",
+        days: [
+          {day:1, task:"Pick a problem you've had, write the headline and 3 features"},
+          {day:2, task:"Build a single-file HTML landing page using Claude to help code"},
+          {day:3, task:"Deploy to Vercel, share on X/LinkedIn, document what you learned"}
+        ]
+      },
+      {
+        title: "Automation of the Day",
+        format: "automation",
+        difficulty: "Medium",
+        tools: ["n8n", "Claude API", "Telegram"],
+        why: "One automation per day compounds into a serious workflow portfolio.",
+        days: [
+          {day:1, task:"Identify a repetitive task in your life, map the steps on paper"},
+          {day:2, task:"Build it in n8n — even a basic 3-node workflow counts"},
+          {day:3, task:"Add a Claude AI step to make it smarter, document the setup"}
+        ]
+      }
+    ];
+    renderIdeas();
+  }
+}
+
+function renderIdeas() {
+  document.getElementById('results-loading').classList.remove('active');
+  document.getElementById('results-content').style.display = 'block';
+
+  const list = document.getElementById('ideas-list');
+  list.innerHTML = state.ideas.map((idea, i) => `
+    <div class="idea-card" id="idea-${i}" onclick="toggleIdea(${i})">
+      <div class="idea-meta">
+        <span class="badge badge-format">${idea.format}</span>
+        <span class="badge badge-diff-${idea.difficulty.toLowerCase()}">${idea.difficulty}</span>
+      </div>
+      <div class="idea-title">${idea.title}</div>
+      <div class="idea-why">${idea.why}</div>
+      <div class="idea-tools">Tools: ${idea.tools.join(' · ')}</div>
+      <div class="idea-days">
+        <div style="font-size:10px; color:var(--accent); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:12px;">First 3 days</div>
+        ${idea.days.map(d => `
+          <div class="day-item">
+            <span class="day-num">Day ${d.day}</span>
+            <span class="day-task">${d.task}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleIdea(i) {
+  const card = document.getElementById(`idea-${i}`);
+  const idx = state.selectedIdeas.indexOf(i);
+  if (idx > -1) {
+    state.selectedIdeas.splice(idx, 1);
+    card.classList.remove('selected');
+  } else {
+    state.selectedIdeas.push(i);
+    card.classList.add('selected');
+  }
+  document.getElementById('select-hint').style.display =
+    state.selectedIdeas.length === 0 ? 'block' : 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// FULL PLAN (PAID)
+// ══════════════════════════════════════════════════════════════════════
+function unlockPlan() {
+  if (state.selectedIdeas.length === 0) {
+    document.getElementById('select-hint').style.display = 'block';
+    document.getElementById('select-hint').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  // In production: trigger Lemon Squeezy payment flow here
+  // For demo: go straight to plan generation
+  generateFullPlan();
+}
+
+async function generateFullPlan() {
+  show('screen-plan');
+  document.getElementById('plan-loading').classList.add('active');
+  document.getElementById('plan-content').style.display = 'none';
+
+  const picked = state.selectedIdeas.map(i => state.ideas[i].title).join(', ');
+
+  const prompt = `You are building a 30-day challenge roadmap for someone doing the 30x30 challenge (build 30 things in 30 days).
+
+Their profile:
+${buildQuizSummary()}
+
+They selected these challenge ideas to base their 30 days on: ${picked}
+
+Create a 30-day plan structured in 4 weekly themes:
+- Week 1 (Days 1-7): Foundation — learn the basics, set up, ship simple things
+- Week 2 (Days 8-14): Push — more complex builds, iterate on week 1
+- Week 3 (Days 15-21): Creative Risk — experiment, break patterns, try something new
+- Week 4 (Days 22-30): Ship & Share — polish, document, share everything
+
+Each day must be:
+- Concrete and actionable (one specific thing to build/make)
+- Completable in their available time: ${(state.answers.time||['1hr']).join(', ')}
+- Building on their selected challenge themes
+
+Respond ONLY with valid JSON (no markdown, no preamble):
+{
+  "weeks": [
+    {
+      "label": "Week 1 — Foundation",
+      "days": [
+        {"day": 1, "title": "Short title", "desc": "One concrete sentence of what to do today."},
+        ...
+      ]
+    },
+    ...
+  ]
+}`;
+
+  try {
+    const res = await fetch("/api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content.map(i => i.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const plan = JSON.parse(clean);
+    renderPlan(plan);
+  } catch(e) {
+    // Fallback
+    renderPlan(getFallbackPlan());
+  }
+}
+
+function renderPlan(plan) {
+  document.getElementById('plan-loading').classList.remove('active');
+  document.getElementById('plan-content').style.display = 'block';
+
+  const weeksEl = document.getElementById('plan-weeks');
+  weeksEl.innerHTML = plan.weeks.map(week => `
+    <div class="week-block">
+      <div class="week-label">${week.label}</div>
+      ${week.days.map(d => `
+        <div class="plan-item">
+          <div class="plan-day-num">${String(d.day).padStart(2,'0')}</div>
+          <div class="plan-day-content">
+            <div class="plan-day-title">${d.title}</div>
+            <div class="plan-day-desc">${d.desc}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function getFallbackPlan() {
+  const days = [];
+  for(let i=1;i<=30;i++) days.push({day:i, title:`Day ${i} Build`, desc:'Build something today and ship it to vibecode.fun'});
+  return {weeks:[
+    {label:'Week 1 — Foundation', days: days.slice(0,7)},
+    {label:'Week 2 — Push', days: days.slice(7,14)},
+    {label:'Week 3 — Creative Risk', days: days.slice(14,21)},
+    {label:'Week 4 — Ship & Share', days: days.slice(21,30)}
+  ]};
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════
+// Animate counters
+function animateCounter(el, target, duration=1500) {
+  let start = 0;
+  const step = target / (duration / 16);
+  const timer = setInterval(() => {
+    start += step;
+    if (start >= target) { el.textContent = target.toLocaleString(); clearInterval(timer); }
+    else el.textContent = Math.floor(start).toLocaleString();
+  }, 16);
+}
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    animateCounter(document.getElementById('counter-builders'), 247);
+    animateCounter(document.getElementById('counter-things'), 1834);
+  }, 400);
+});
+</script>
+</body>
+</html>
