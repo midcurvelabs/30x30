@@ -855,7 +855,7 @@ function prevQuestion() {
 // ══════════════════════════════════════════════════════════════════════
 // EMAIL
 // ══════════════════════════════════════════════════════════════════════
-function submitEmail() {
+async function submitEmail() {
   const name = document.getElementById('email-name').value.trim();
   const email = document.getElementById('email-addr').value.trim();
   const errEl = document.getElementById('email-error');
@@ -867,6 +867,14 @@ function submitEmail() {
   errEl.style.display = 'none';
   state.name = name;
   state.email = email;
+
+  // Save to D1 — fire and forget, never blocks the user
+  fetch('/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, answers: state.answers })
+  }).catch(() => {});
+
   generateIdeas();
 }
 
