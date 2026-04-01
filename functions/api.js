@@ -1,5 +1,6 @@
 // 30x30 Challenge — Cloudflare Pages Function (API proxy)
 // Lives at /api — same domain as the frontend, no CORS needed.
+// Redeploy trigger: 2026-04-02
 //
 // SETUP: In Cloudflare Pages → Settings → Environment Variables
 // Add secret: ANTHROPIC_API_KEY = sk-ant-...
