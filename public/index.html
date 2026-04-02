@@ -939,52 +939,23 @@ Respond ONLY with a valid JSON array (no markdown, no preamble) in this exact fo
       })
     });
 
+    if (!res.ok) {
+      throw new Error(`API error ${res.status}: ${await res.text()}`);
+    }
+
     const data = await res.json();
+
+    if (data.error || !data.content) {
+      throw new Error(data.error?.message || 'No content returned from Claude');
+    }
+
     const text = data.content.map(i => i.text || '').join('');
     const clean = text.replace(/```json|```/g, '').trim();
     state.ideas = JSON.parse(clean);
     renderIdeas();
   } catch(e) {
-    // Fallback demo ideas
-    state.ideas = [
-      {
-        title: "Daily AI Tool Review",
-        format: "video",
-        difficulty: "Easy",
-        tools: ["Phone camera", "CapCut", "Claude"],
-        why: "You can create one short review per day using tools you already know.",
-        days: [
-          {day:1, task:"Pick an AI tool, spend 20 min exploring it, record a 60-sec take"},
-          {day:2, task:"Edit and post your first review, set up a simple posting schedule"},
-          {day:3, task:"Try a second tool, compare it to day 1 in your review"}
-        ]
-      },
-      {
-        title: "Micro SaaS Landing Pages",
-        format: "app",
-        difficulty: "Medium",
-        tools: ["HTML/CSS", "Claude", "Vercel"],
-        why: "Builds your portfolio fast — ship one landing page concept per day.",
-        days: [
-          {day:1, task:"Pick a problem you've had, write the headline and 3 features"},
-          {day:2, task:"Build a single-file HTML landing page using Claude to help code"},
-          {day:3, task:"Deploy to Vercel, share on X/LinkedIn, document what you learned"}
-        ]
-      },
-      {
-        title: "Automation of the Day",
-        format: "automation",
-        difficulty: "Medium",
-        tools: ["n8n", "Claude API", "Telegram"],
-        why: "One automation per day compounds into a serious workflow portfolio.",
-        days: [
-          {day:1, task:"Identify a repetitive task in your life, map the steps on paper"},
-          {day:2, task:"Build it in n8n — even a basic 3-node workflow counts"},
-          {day:3, task:"Add a Claude AI step to make it smarter, document the setup"}
-        ]
-      }
-    ];
-    renderIdeas();
+    console.error('Idea generation failed:', e.message);
+    showGenerationError('ideas', e.message);
   }
 }
 
@@ -1091,14 +1062,23 @@ Respond ONLY with valid JSON (no markdown, no preamble):
       })
     });
 
+    if (!res.ok) {
+      throw new Error(`API error ${res.status}: ${await res.text()}`);
+    }
+
     const data = await res.json();
+
+    if (data.error || !data.content) {
+      throw new Error(data.error?.message || 'No content returned from Claude');
+    }
+
     const text = data.content.map(i => i.text || '').join('');
     const clean = text.replace(/```json|```/g, '').trim();
     const plan = JSON.parse(clean);
     renderPlan(plan);
   } catch(e) {
-    // Fallback
-    renderPlan(getFallbackPlan());
+    console.error('Plan generation failed:', e.message);
+    showGenerationError('plan', e.message);
   }
 }
 
@@ -1135,6 +1115,30 @@ function getFallbackPlan() {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+// ERROR DISPLAY
+// ══════════════════════════════════════════════════════════════════════
+function showGenerationError(type, msg) {
+  if (type === 'ideas') {
+    document.getElementById('results-loading').classList.remove('active');
+    document.getElementById('results-content').style.display = 'block';
+    document.getElementById('ideas-list').innerHTML = `
+      <div style="background:#1a0a0a; border:1px solid #5a1a00; padding:24px; color:#e05a2b; margin-bottom:24px;">
+        <div style="font-family:'Syne',sans-serif; font-size:16px; font-weight:700; margin-bottom:8px;">Generation failed</div>
+        <div style="font-size:12px; opacity:0.8; margin-bottom:12px;">${msg}</div>
+        <div style="font-size:11px; color:#888;">Most likely: ANTHROPIC_API_KEY not set in Cloudflare Pages → Settings → Environment Variables.</div>
+      </div>`;
+  } else {
+    document.getElementById('plan-loading').classList.remove('active');
+    document.getElementById('plan-content').style.display = 'block';
+    document.getElementById('plan-weeks').innerHTML = `
+      <div style="background:#1a0a0a; border:1px solid #5a1a00; padding:24px; color:#e05a2b;">
+        <div style="font-family:'Syne',sans-serif; font-size:16px; font-weight:700; margin-bottom:8px;">Plan generation failed</div>
+        <div style="font-size:12px; opacity:0.8;">${msg}</div>
+      </div>`;
+  }
+}
+
 // INIT
 // ══════════════════════════════════════════════════════════════════════
 // Animate counters
