@@ -1021,37 +1021,19 @@ async function generateFullPlan() {
 
   const picked = state.selectedIdeas.map(i => state.ideas[i].title).join(', ');
 
-  const prompt = `You are building a 30-day challenge roadmap for someone doing the 30x30 challenge (build 30 things in 30 days).
+  const prompt = `Generate a 30-day challenge plan as JSON. No markdown, no preamble, just the JSON object.
 
-Their profile:
-${buildQuizSummary()}
+Builder profile: ${buildQuizSummary()}
+Challenge focus: ${picked}
+Time per day: ${(state.answers.time||['1hr']).join(', ')}
 
-They selected these challenge ideas to base their 30 days on: ${picked}
+Rules:
+- 30 days split into 4 weeks
+- Each day: short title (4 words max) + one action sentence (15 words max)
+- Be specific, no filler
 
-Create a 30-day plan structured in 4 weekly themes:
-- Week 1 (Days 1-7): Foundation — learn the basics, set up, ship simple things
-- Week 2 (Days 8-14): Push — more complex builds, iterate on week 1
-- Week 3 (Days 15-21): Creative Risk — experiment, break patterns, try something new
-- Week 4 (Days 22-30): Ship & Share — polish, document, share everything
-
-Each day must be:
-- Concrete and actionable (one specific thing to build/make)
-- Completable in their available time: ${(state.answers.time||['1hr']).join(', ')}
-- Building on their selected challenge themes
-
-Respond ONLY with valid JSON (no markdown, no preamble):
-{
-  "weeks": [
-    {
-      "label": "Week 1 — Foundation",
-      "days": [
-        {"day": 1, "title": "Short title", "desc": "One concrete sentence of what to do today."},
-        ...
-      ]
-    },
-    ...
-  ]
-}`;
+JSON format (return ONLY this, nothing else):
+{"weeks":[{"label":"Week 1 — Foundation","days":[{"day":1,"title":"title here","desc":"action here"},{"day":2,"title":"title here","desc":"action here"},{"day":3,"title":"title here","desc":"action here"},{"day":4,"title":"title here","desc":"action here"},{"day":5,"title":"title here","desc":"action here"},{"day":6,"title":"title here","desc":"action here"},{"day":7,"title":"title here","desc":"action here"}]},{"label":"Week 2 — Push","days":[{"day":8,"title":"title here","desc":"action here"},{"day":9,"title":"title here","desc":"action here"},{"day":10,"title":"title here","desc":"action here"},{"day":11,"title":"title here","desc":"action here"},{"day":12,"title":"title here","desc":"action here"},{"day":13,"title":"title here","desc":"action here"},{"day":14,"title":"title here","desc":"action here"}]},{"label":"Week 3 — Creative Risk","days":[{"day":15,"title":"title here","desc":"action here"},{"day":16,"title":"title here","desc":"action here"},{"day":17,"title":"title here","desc":"action here"},{"day":18,"title":"title here","desc":"action here"},{"day":19,"title":"title here","desc":"action here"},{"day":20,"title":"title here","desc":"action here"},{"day":21,"title":"title here","desc":"action here"}]},{"label":"Week 4 — Ship & Share","days":[{"day":22,"title":"title here","desc":"action here"},{"day":23,"title":"title here","desc":"action here"},{"day":24,"title":"title here","desc":"action here"},{"day":25,"title":"title here","desc":"action here"},{"day":26,"title":"title here","desc":"action here"},{"day":27,"title":"title here","desc":"action here"},{"day":28,"title":"title here","desc":"action here"},{"day":29,"title":"title here","desc":"action here"},{"day":30,"title":"title here","desc":"action here"}]}]}`;
 
   try {
     const res = await fetch("/api", {
@@ -1059,7 +1041,7 @@ Respond ONLY with valid JSON (no markdown, no preamble):
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 4000
+        max_tokens: 8000
       })
     });
 
