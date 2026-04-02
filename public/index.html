@@ -1021,48 +1021,72 @@ async function generateFullPlan() {
 
   const picked = state.selectedIdeas.map(i => state.ideas[i].title).join(', ');
 
-  const prompt = `Generate a 30-day challenge plan as JSON. No markdown, no preamble, just the JSON object.
+  const prompt = `Builder: ${buildQuizSummary()}
+Focus: ${picked}
+Time/day: ${(state.answers.time||['1hr']).join(', ')}
 
-Builder profile: ${buildQuizSummary()}
-Challenge focus: ${picked}
-Time per day: ${(state.answers.time||['1hr']).join(', ')}
+Generate a 30-day challenge plan. 4 weeks, 30 days total.
+Week themes: "Week 1 — Foundation" (days 1-7), "Week 2 — Push" (days 8-14), "Week 3 — Creative Risk" (days 15-21), "Week 4 — Ship & Share" (days 22-30).
+Each day: title (4 words max), desc (action sentence, 12 words max). Be specific.
 
-Rules:
-- 30 days split into 4 weeks
-- Each day: short title (4 words max) + one action sentence (15 words max)
-- Be specific, no filler
-
-JSON format (return ONLY this, nothing else):
-{"weeks":[{"label":"Week 1 — Foundation","days":[{"day":1,"title":"title here","desc":"action here"},{"day":2,"title":"title here","desc":"action here"},{"day":3,"title":"title here","desc":"action here"},{"day":4,"title":"title here","desc":"action here"},{"day":5,"title":"title here","desc":"action here"},{"day":6,"title":"title here","desc":"action here"},{"day":7,"title":"title here","desc":"action here"}]},{"label":"Week 2 — Push","days":[{"day":8,"title":"title here","desc":"action here"},{"day":9,"title":"title here","desc":"action here"},{"day":10,"title":"title here","desc":"action here"},{"day":11,"title":"title here","desc":"action here"},{"day":12,"title":"title here","desc":"action here"},{"day":13,"title":"title here","desc":"action here"},{"day":14,"title":"title here","desc":"action here"}]},{"label":"Week 3 — Creative Risk","days":[{"day":15,"title":"title here","desc":"action here"},{"day":16,"title":"title here","desc":"action here"},{"day":17,"title":"title here","desc":"action here"},{"day":18,"title":"title here","desc":"action here"},{"day":19,"title":"title here","desc":"action here"},{"day":20,"title":"title here","desc":"action here"},{"day":21,"title":"title here","desc":"action here"}]},{"label":"Week 4 — Ship & Share","days":[{"day":22,"title":"title here","desc":"action here"},{"day":23,"title":"title here","desc":"action here"},{"day":24,"title":"title here","desc":"action here"},{"day":25,"title":"title here","desc":"action here"},{"day":26,"title":"title here","desc":"action here"},{"day":27,"title":"title here","desc":"action here"},{"day":28,"title":"title here","desc":"action here"},{"day":29,"title":"title here","desc":"action here"},{"day":30,"title":"title here","desc":"action here"}]}]}`;
+Return JSON: {"weeks":[{"label":"Week 1 — Foundation","days":[{"day":1,"title":"...","desc":"..."},...7 days]},... 4 weeks total]}`;
 
   try {
-    const res = await fetch("/api", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 8000
-      })
-    });
-
-    if (!res.ok) {
-      throw new Error(`API error ${res.status}: ${await res.text()}`);
-    }
-
-    const data = await res.json();
-
-    if (data.error || !data.content) {
-      throw new Error(data.error?.message || 'No content returned from Claude');
-    }
-
-    const text = data.content.map(i => i.text || '').join('');
-    const clean = text.replace(/```json|```/g, '').trim();
-    const plan = JSON.parse(clean);
+    const plan = await callPlanAPI(prompt);
     renderPlan(plan);
   } catch(e) {
     console.error('Plan generation failed:', e.message);
-    showGenerationError('plan', e.message);
+    // Use fallback plan so user always sees something
+    renderPlan(getFallbackPlan());
   }
+}
+
+async function callPlanAPI(prompt, retries = 1) {
+  const res = await fetch("/api", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      system: "You are a JSON generator. Return ONLY valid JSON. No markdown fences, no explanation, no preamble.",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 4000
+    })
+  });
+
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}: ${await res.text()}`);
+  }
+
+  const data = await res.json();
+
+  if (data.error || !data.content) {
+    throw new Error(data.error?.message || 'No content returned from Claude');
+  }
+
+  // Check if response was truncated
+  if (data.stop_reason === 'max_tokens' && retries > 0) {
+    console.warn('Plan response truncated, retrying with tighter constraints...');
+    const tighterPrompt = prompt + '\nIMPORTANT: Keep each desc under 8 words. Be extremely concise.';
+    return callPlanAPI(tighterPrompt, retries - 1);
+  }
+
+  const text = data.content.map(i => i.text || '').join('');
+  let clean = text.replace(/```json|```/g, '').trim();
+
+  // Extract JSON boundaries
+  const jsonStart = clean.indexOf('{');
+  const jsonEnd = clean.lastIndexOf('}');
+  if (jsonStart !== -1 && jsonEnd > jsonStart) {
+    clean = clean.substring(jsonStart, jsonEnd + 1);
+  }
+
+  const plan = JSON.parse(clean);
+
+  // Basic validation
+  if (!plan.weeks || !Array.isArray(plan.weeks) || plan.weeks.length === 0) {
+    throw new Error('Invalid plan structure');
+  }
+
+  return plan;
 }
 
 function renderPlan(plan) {

@@ -8,6 +8,11 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // ── HTTPS redirect ──
+    if (url.protocol === 'http:' && !url.hostname.includes('localhost')) {
+      return Response.redirect(url.href.replace('http:', 'https:'), 301);
+    }
+
     // ── API: Claude proxy ──
     if (url.pathname === '/api') {
       if (request.method === 'OPTIONS') return corsOk();
@@ -28,6 +33,10 @@ export default {
       // Allow caller to pass max_tokens — default 1000 for ideas, 4000 for full plan
       const max_tokens = body.max_tokens || 1000;
 
+      // Build API payload
+      const payload = { model: MODEL, max_tokens, messages: body.messages };
+      if (body.system) payload.system = body.system;
+
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -36,11 +45,7 @@ export default {
             'x-api-key': env.ANTHROPIC_API_KEY,
             'anthropic-version': '2023-06-01'
           },
-          body: JSON.stringify({
-            model: MODEL,
-            max_tokens,
-            messages: body.messages
-          })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         return jsonResponse(data, res.status);
