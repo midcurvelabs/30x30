@@ -3,7 +3,6 @@
 // Everything else served from static assets (public/)
 
 const MODEL = 'claude-haiku-4-5-20251001';
-const MAX_TOKENS = 1000;
 
 export default {
   async fetch(request, env) {
@@ -26,6 +25,9 @@ export default {
         return jsonResponse({ error: { message: 'ANTHROPIC_API_KEY not configured' } }, 500);
       }
 
+      // Allow caller to pass max_tokens — default 1000 for ideas, 4000 for full plan
+      const max_tokens = body.max_tokens || 1000;
+
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -36,7 +38,7 @@ export default {
           },
           body: JSON.stringify({
             model: MODEL,
-            max_tokens: MAX_TOKENS,
+            max_tokens,
             messages: body.messages
           })
         });
@@ -84,7 +86,6 @@ export default {
           ).run();
         } catch (err) {
           console.error('DB error:', err);
-          // Don't fail the user — silent DB error
         }
       }
 
