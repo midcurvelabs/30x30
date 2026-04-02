@@ -1,0 +1,12 @@
+name = "30x30"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "30x30-subscribers"
+database_id = "0e07b0d3-e9a0-4825-8ff8-a222f032ee1f"
