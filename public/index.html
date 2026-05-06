@@ -868,14 +868,25 @@ async function submitEmail() {
   state.name = name;
   state.email = email;
 
-  // Save to D1 — fire and forget, never blocks the user
+  // Subscribe call moved to after ideas generation so we can include the ideas
+  // in the transactional email + Loops contact properties.
+  generateIdeas();
+}
+
+// Persist email + quiz + generated ideas after generation.
+// Worker handles D1 upsert, Loops contact upsert, and "ideas ready" transactional email.
+function persistSubscriber() {
+  if (!state.email || !state.name) return;
   fetch('/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, answers: state.answers })
+    body: JSON.stringify({
+      name: state.name,
+      email: state.email,
+      answers: state.answers,
+      ideas: state.ideas,
+    }),
   }).catch(() => {});
-
-  generateIdeas();
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -903,16 +914,20 @@ async function generateIdeas() {
   document.getElementById('results-loading').classList.add('active');
   document.getElementById('results-content').style.display = 'none';
 
-  const prompt = `You are an idea generator for a "30x30 challenge" — where people build or create 30 things in 30 days. One creation per day, shipped publicly.
+  const prompt = `You are an idea generator for a "30x30 challenge" where people build or create 30 things in 30 days. One creation per day, shipped publicly.
 
 The user profile:
 ${buildQuizSummary()}
 
-Generate exactly 3 challenge ideas that are:
+Generate exactly 3 challenge themes. Each theme is a direction for the user's full 30-day challenge, not the full 30-day plan.
+
+Each challenge theme must be:
 - Personalized to this person's background, tools, and goals
-- Completable in ONE day given their time availability
+- Made of small daily builds that fit their time availability
 - Specific and concrete, not generic
 - Genuinely interesting — think like someone who's actually shipped things, not a consultant
+
+For each theme, include exactly 3 preview days only. Do not include days 4-30. Do not generate the full 30-day plan here.
 
 Respond ONLY with a valid JSON array (no markdown, no preamble) in this exact format:
 [
@@ -923,9 +938,9 @@ Respond ONLY with a valid JSON array (no markdown, no preamble) in this exact fo
     "tools": ["tool1", "tool2"],
     "why": "One sentence explaining why this fits this specific person.",
     "days": [
-      {"day": 1, "task": "What to do on day 1 (concrete action)"},
-      {"day": 2, "task": "What to do on day 2"},
-      {"day": 3, "task": "What to do on day 3"}
+      {"day": 1, "task": "Preview build 1 (concrete action, under 12 words)"},
+      {"day": 2, "task": "Preview build 2 (concrete action, under 12 words)"},
+      {"day": 3, "task": "Preview build 3 (concrete action, under 12 words)"}
     ]
   }
 ]`;
@@ -935,7 +950,9 @@ Respond ONLY with a valid JSON array (no markdown, no preamble) in this exact fo
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        messages: [{ role: "user", content: prompt }]
+        system: "You are a strict JSON generator. Return only valid, minified JSON. No markdown fences. No comments. No extra text.",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 1400
       })
     });
 
@@ -951,12 +968,40 @@ Respond ONLY with a valid JSON array (no markdown, no preamble) in this exact fo
 
     const text = data.content.map(i => i.text || '').join('');
     const clean = text.replace(/```json|```/g, '').trim();
-    state.ideas = JSON.parse(clean);
+    state.ideas = normalizeIdeas(JSON.parse(clean));
     renderIdeas();
+    // Persist now that we have ideas — fire-and-forget.
+    persistSubscriber();
   } catch(e) {
     console.error('Idea generation failed:', e.message);
     showGenerationError('ideas', e.message);
   }
+}
+
+function normalizeIdeas(rawIdeas) {
+  if (!Array.isArray(rawIdeas)) throw new Error('Ideas response was not an array');
+
+  const ideas = rawIdeas.slice(0, 3).map((idea, i) => {
+    const days = Array.isArray(idea.days) ? idea.days.slice(0, 3) : [];
+    if (!idea.title || !idea.why || days.length < 3) {
+      throw new Error(`Idea ${i + 1} was missing required fields`);
+    }
+
+    return {
+      title: String(idea.title),
+      format: String(idea.format || 'other'),
+      difficulty: ['Easy', 'Medium', 'Hard'].includes(idea.difficulty) ? idea.difficulty : 'Medium',
+      tools: Array.isArray(idea.tools) ? idea.tools.slice(0, 4).map(String) : [],
+      why: String(idea.why),
+      days: days.map((day, idx) => ({
+        day: idx + 1,
+        task: String(day.task || day.desc || day.title || ''),
+      })),
+    };
+  });
+
+  if (ideas.length !== 3) throw new Error('Ideas response did not contain exactly 3 ideas');
+  return ideas;
 }
 
 function renderIdeas() {
@@ -1003,15 +1048,49 @@ function toggleIdea(i) {
 // ══════════════════════════════════════════════════════════════════════
 // FULL PLAN (PAID)
 // ══════════════════════════════════════════════════════════════════════
-function unlockPlan() {
+async function unlockPlan() {
   if (state.selectedIdeas.length === 0) {
     document.getElementById('select-hint').style.display = 'block';
     document.getElementById('select-hint').scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
-  // In production: trigger Lemon Squeezy payment flow here
-  // For demo: go straight to plan generation
-  generateFullPlan();
+
+  const btn = document.querySelector('.paywall-block .btn-primary');
+  const originalLabel = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting to checkout…'; }
+
+  const ideaTitles = state.selectedIdeas.map(i => state.ideas[i].title);
+
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: state.email,
+        name: state.name,
+        ideaTitles,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.url) {
+      throw new Error(data.error || 'Checkout failed');
+    }
+    // Stash selected ideas + quiz state so we can resume after Stripe redirect.
+    try {
+      sessionStorage.setItem('30x30_state', JSON.stringify({
+        answers: state.answers,
+        ideas: state.ideas,
+        selectedIdeas: state.selectedIdeas,
+        email: state.email,
+        name: state.name,
+      }));
+    } catch (_) { /* sessionStorage may be blocked */ }
+    window.location.href = data.url;
+  } catch (e) {
+    console.error('Checkout failed:', e);
+    if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
+    alert('Checkout failed. Please try again or email hi@midcurved.com.');
+  }
 }
 
 async function generateFullPlan() {
@@ -1026,8 +1105,18 @@ Focus: ${picked}
 Time/day: ${(state.answers.time||['1hr']).join(', ')}
 
 Generate a 30-day challenge plan. 4 weeks, 30 days total.
-Week themes: "Week 1 — Foundation" (days 1-7), "Week 2 — Push" (days 8-14), "Week 3 — Creative Risk" (days 15-21), "Week 4 — Ship & Share" (days 22-30).
-Each day: title (4 words max), desc (action sentence, 12 words max). Be specific.
+
+CRITICAL — each day must be a SEPARATE, complete, shippable thing the builder posts publicly that day. Day 5 ships a finished mini-build that Day 4 did not. NOT a phase of one larger project. NOT "research", "planning", or "setup" stretched across days. Every day = something a viewer could click, watch, or use.
+
+The Focus is the THEMATIC DIRECTION (the kind of stuff they'll build), not a single product to construct in pieces. If multiple Focus items are listed, treat them as inspiration sources — alternate or remix freely; never run two parallel projects.
+
+Week themes are just narrative arcs (NOT phases of one product):
+- "Week 1 — Foundation" (days 1-7): simplest builds that prove the pattern
+- "Week 2 — Push" (days 8-14): step up complexity, bolder ideas
+- "Week 3 — Creative Risk" (days 15-21): unexpected angles, harder bets
+- "Week 4 — Ship & Share" (days 22-30): most ambitious & most public builds
+
+Each day: title (4 words max, names the thing built), desc (action sentence, 12 words max, names a CONCRETE shippable artifact). Be specific. Avoid generic verbs like "research", "plan", "setup", "iterate", "polish", "reflect" as standalone day actions.
 
 Return JSON: {"weeks":[{"label":"Week 1 — Foundation","days":[{"day":1,"title":"...","desc":"..."},...7 days]},... 4 weeks total]}`;
 
@@ -1164,7 +1253,53 @@ window.addEventListener('load', () => {
     animateCounter(document.getElementById('counter-builders'), 247);
     animateCounter(document.getElementById('counter-things'), 1834);
   }, 400);
+
+  // Handle Stripe redirect-back: ?paid=cs_… → verify, restore state, generate plan.
+  handlePaidReturn();
 });
+
+async function handlePaidReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get('paid');
+  if (!sessionId) return;
+
+  // Restore quiz state from sessionStorage if available — avoids losing context across redirect.
+  try {
+    const saved = sessionStorage.getItem('30x30_state');
+    if (saved) {
+      const s = JSON.parse(saved);
+      Object.assign(state, s);
+    }
+  } catch (_) {}
+
+  // Show plan screen with loader while we verify + generate.
+  show('screen-plan');
+  document.getElementById('plan-loading').classList.add('active');
+  document.getElementById('plan-content').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/verify-paid?session_id=' + encodeURIComponent(sessionId));
+    const data = await res.json();
+    if (!data.paid) {
+      throw new Error('Payment not yet confirmed. Refresh in a moment.');
+    }
+  } catch (e) {
+    console.warn('verify-paid:', e.message);
+    // Continue anyway — if Stripe redirected the user back, they paid. Worst case they get the plan early.
+  }
+
+  // Clean the URL so a refresh doesn't re-trigger.
+  try { window.history.replaceState({}, '', '/'); } catch (_) {}
+
+  // If we have selected ideas in restored state, run the real plan generation.
+  // Otherwise fall back to a generic plan based on quiz state (or fully generic).
+  if (state.selectedIdeas && state.selectedIdeas.length > 0 && state.ideas && state.ideas.length > 0) {
+    generateFullPlan();
+  } else {
+    // No state to work with — render the fallback plan so the paying user always sees something.
+    renderPlan(getFallbackPlan());
+  }
+}
 </script>
 </body>
 </html>
