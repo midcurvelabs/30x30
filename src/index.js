@@ -371,7 +371,7 @@ export default {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Ship Season <hello@vibecode.fun>',
+            from: 'Ship Season <hi@updates.midcurved.com>',
             to: row.email,
             subject: 'Your 30-day plan — Ship Season 01',
             html,
