@@ -29,7 +29,7 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "ss01", "cv11";
     min-height: 100vh;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   /* noise overlay */
@@ -629,7 +629,7 @@
 <!-- ══════════════════════════════ HERO ══════════════════════════════ -->
 <div id="screen-hero" class="screen">
   <div class="container">
-    <span class="tag">Rolling Challenge</span>
+    <span class="tag">Ship Season 01</span>
     <h1>
       <span class="accent">30</span> things<br>
       <span class="dim">in</span> 30 days<span class="accent">.</span>
@@ -751,6 +751,16 @@
         <a href="https://vibecode.fun" target="_blank" class="btn-primary" style="text-decoration:none; display:inline-flex;">
           Go to vibecode.fun →
         </a>
+        <div style="margin-top:12px;">
+          <button
+            id="btn-email-plan"
+            class="btn-primary"
+            onclick="emailPlan()"
+            disabled
+            style="width:100%; justify-content:center; opacity:0.4; background:var(--surface); color:var(--muted); border:1px solid var(--border);">
+            Saving your plan…
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -766,7 +776,8 @@ const state = {
   email: '',
   name: '',
   ideas: [],
-  selectedIdeas: []
+  selectedIdeas: [],
+  planToken: null,
 };
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1201,6 +1212,7 @@ Return JSON: {"weeks":[{"label":"Week 1 — Foundation","days":[{"day":1,"title"
   try {
     const plan = await callPlanAPI(prompt);
     renderPlan(plan);
+    savePlanToServer(plan);
   } catch(e) {
     console.error('Plan generation failed:', e.message);
     // Use fallback plan so user always sees something
@@ -1275,6 +1287,61 @@ function renderPlan(plan) {
       `).join('')}
     </div>
   `).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// SAVE + EMAIL PLAN
+// ══════════════════════════════════════════════════════════════════════
+async function savePlanToServer(plan) {
+  if (!state.email) return;
+  try {
+    const res = await fetch('/api/save-plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: state.email, ideas: state.ideas, plan }),
+    });
+    const data = await res.json();
+    if (data.token) {
+      state.planToken = data.token;
+      const btn = document.getElementById('btn-email-plan');
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.textContent = 'Email me this plan →';
+      }
+    }
+  } catch (e) {
+    console.error('save-plan failed:', e);
+  }
+}
+
+async function emailPlan() {
+  const btn = document.getElementById('btn-email-plan');
+  if (!state.planToken || !btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    const res = await fetch('/api/email-plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: state.planToken }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = '✓ Sent to ' + state.email;
+      btn.style.background = 'var(--surface2)';
+      btn.style.color = 'var(--accent)';
+      btn.style.border = '1px solid var(--accent)';
+    } else {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.textContent = data.error || 'Failed — try again';
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.textContent = 'Failed — try again';
+  }
 }
 
 function getFallbackPlan() {

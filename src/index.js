@@ -276,6 +276,126 @@ export default {
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // /api/save-plan — persist generated plan, return UUID access token
+    // body: { email, ideas, plan }
+    // ─────────────────────────────────────────────────────────────────
+    if (url.pathname === '/api/save-plan') {
+      if (request.method === 'OPTIONS') return corsOk();
+      if (request.method !== 'POST')   return new Response('Method not allowed', { status: 405 });
+      if (!isAllowedOrigin(request))   return jsonResponse({ error: 'Forbidden' }, 403);
+
+      let body;
+      try { body = await request.json(); }
+      catch { return jsonResponse({ error: 'Bad request' }, 400); }
+
+      const { email, ideas, plan } = body;
+      if (!email || !email.includes('@'))       return jsonResponse({ error: 'Missing email' }, 400);
+      if (!plan || !Array.isArray(plan.weeks))  return jsonResponse({ error: 'Missing plan' }, 400);
+
+      const cleanEmail = email.toLowerCase().trim();
+      const token = crypto.randomUUID();
+
+      if (!env.DB) return jsonResponse({ error: 'DB not configured' }, 500);
+
+      try {
+        // Rate-limit: 1 save per email per 30 seconds
+        const recent = await env.DB.prepare(
+          `SELECT id FROM plans WHERE email = ? AND created_at > datetime('now', '-30 seconds') LIMIT 1`
+        ).bind(cleanEmail).first();
+        if (recent) return jsonResponse({ error: 'Too many requests' }, 429);
+
+        await env.DB.prepare(
+          `INSERT INTO plans (email, ideas_json, plan_json, token) VALUES (?, ?, ?, ?)`
+        ).bind(cleanEmail, JSON.stringify(ideas || []), JSON.stringify(plan), token).run();
+
+        return jsonResponse({ token });
+      } catch (err) {
+        console.error('save-plan DB error:', err);
+        return jsonResponse({ error: 'DB error' }, 500);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // /api/email-plan — send saved plan to subscriber via Resend
+    // body: { token }
+    // ─────────────────────────────────────────────────────────────────
+    if (url.pathname === '/api/email-plan') {
+      if (request.method === 'OPTIONS') return corsOk();
+      if (request.method !== 'POST')   return new Response('Method not allowed', { status: 405 });
+      if (!isAllowedOrigin(request))   return jsonResponse({ error: 'Forbidden' }, 403);
+
+      let body;
+      try { body = await request.json(); }
+      catch { return jsonResponse({ error: 'Bad request' }, 400); }
+
+      const { token } = body;
+      if (!token || !isValidUUID(token)) return jsonResponse({ error: 'Invalid token' }, 400);
+
+      if (!env.DB)             return jsonResponse({ error: 'DB not configured' }, 500);
+      if (!env.RESEND_API_KEY) return jsonResponse({ error: 'Email not configured' }, 500);
+
+      try {
+        const row = await env.DB.prepare(`
+          SELECT p.email, p.plan_json, p.email_count, p.last_emailed_at, s.name
+          FROM plans p
+          LEFT JOIN subscribers s ON p.email = s.email
+          WHERE p.token = ? LIMIT 1
+        `).bind(token).first();
+
+        if (!row) return jsonResponse({ error: 'Plan not found' }, 404);
+
+        // Rate-limit: 1 email per token per 10 minutes
+        if (row.last_emailed_at) {
+          const elapsed = Date.now() - new Date(row.last_emailed_at).getTime();
+          if (elapsed < 10 * 60 * 1000) {
+            return jsonResponse({ error: 'Please wait a few minutes before requesting another copy' }, 429);
+          }
+        }
+
+        // Hard cap: 10 emails per plan token
+        if (row.email_count >= 10) {
+          return jsonResponse({ error: 'Email limit reached for this plan' }, 429);
+        }
+
+        let plan;
+        try { plan = JSON.parse(row.plan_json); }
+        catch { return jsonResponse({ error: 'Plan data corrupt' }, 500); }
+
+        const name = row.name || 'Builder';
+        const html = formatPlanEmail(name, plan);
+
+        const resendRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Ship Season <hello@vibecode.fun>',
+            to: row.email,
+            subject: 'Your 30-day plan — Ship Season 01',
+            html,
+          }),
+        });
+
+        if (!resendRes.ok) {
+          const err = await resendRes.json().catch(() => ({}));
+          console.error('Resend error:', err);
+          return jsonResponse({ error: 'Failed to send email' }, 502);
+        }
+
+        await env.DB.prepare(
+          `UPDATE plans SET email_count = email_count + 1, last_emailed_at = ? WHERE token = ?`
+        ).bind(new Date().toISOString(), token).run();
+
+        return jsonResponse({ success: true });
+      } catch (err) {
+        console.error('email-plan error:', err);
+        return jsonResponse({ error: 'Internal error' }, 500);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // static assets
     // ─────────────────────────────────────────────────────────────────
     return env.ASSETS.fetch(request);
@@ -320,6 +440,51 @@ function isAllowedOrigin(request) {
   } catch {
     return false;
   }
+}
+
+// ──────────── UUID v4 validation ────────────
+
+function isValidUUID(str) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
+// ──────────── Plan email HTML template ────────────
+
+function formatPlanEmail(name, plan) {
+  const weeks = (plan.weeks || []).map(week => {
+    const days = (week.days || []).map(d => `
+      <tr>
+        <td style="padding:6px 16px 6px 0;font-family:monospace;font-size:20px;font-weight:800;color:#c8901a;vertical-align:top;white-space:nowrap;line-height:1.3;">${String(d.day).padStart(2, '0')}</td>
+        <td style="padding:6px 0;vertical-align:top;">
+          <div style="font-size:13px;font-weight:600;color:#f0ece0;margin-bottom:2px;line-height:1.3;">${d.title}</div>
+          <div style="font-size:12px;color:#888;line-height:1.5;">${d.desc}</div>
+        </td>
+      </tr>`).join('');
+    return `
+      <div style="margin-bottom:28px;">
+        <div style="font-size:9px;color:#c8901a;letter-spacing:0.18em;text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid #2a2620;margin-bottom:10px;">${week.label}</div>
+        <table style="width:100%;border-collapse:collapse;">${days}</table>
+      </div>`;
+  }).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="background:#100f0c;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:580px;margin:0 auto;padding:40px 24px;">
+  <div style="margin-bottom:28px;">
+    <span style="font-size:10px;color:#c8901a;letter-spacing:0.15em;text-transform:uppercase;border:1px solid #c8901a;border-radius:999px;padding:4px 12px;">Ship Season 01</span>
+  </div>
+  <h1 style="font-size:30px;font-weight:800;color:#f0ece0;line-height:1.1;margin:0 0 8px;">Your 30-day plan<span style="color:#c8901a;">.</span></h1>
+  <p style="color:#666;font-size:13px;margin:0 0 36px;line-height:1.6;">Hey ${name} — one thing per day. Ship it. Share it.</p>
+  ${weeks}
+  <div style="margin-top:36px;padding-top:24px;border-top:1px solid #2a2620;text-align:center;">
+    <p style="font-size:12px;color:#666;margin:0 0 16px;">Post your builds with <span style="color:#c8901a;">#30x30</span> on vibecode.fun</p>
+    <a href="https://vibecode.fun" style="display:inline-block;background:#c8901a;color:#100f0c;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:12px 28px;text-decoration:none;border-radius:6px;">Go to vibecode.fun →</a>
+  </div>
+  <p style="font-size:10px;color:#444;text-align:center;margin-top:28px;">
+    <a href="https://30x30.midcurved.com" style="color:#444;text-decoration:none;">30x30.midcurved.com</a>
+  </p>
+</div>
+</body></html>`;
 }
 
 // ──────────── Stripe signature verification (Web Crypto, no SDK) ────────────
