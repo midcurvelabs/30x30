@@ -4,26 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>30x30 — Build 30 Things in 30 Days</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Inter:wght@400;500;600&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* Curve Design System tokens — MIDDLE-yellow (Midcurved umbrella) */
   :root {
-    --bg: #0a0a0a;
-    --surface: #111111;
-    --surface2: #1a1a1a;
-    --border: #222222;
-    --accent: #e8f53a;
-    --accent2: #ff5c35;
-    --text: #f0f0f0;
-    --muted: #666;
-    --radius: 4px;
+    --bg: oklch(0.10 0.006 85);          /* warm-tinted near-black */
+    --surface: oklch(0.16 0.008 85);     /* card surface */
+    --surface2: oklch(0.21 0.010 85);    /* selected/hover */
+    --border: oklch(0.27 0.010 85);      /* subtle edge */
+    --accent: oklch(0.82 0.20 85);       /* Midcurved yellow */
+    --accent-soft: oklch(0.82 0.20 85 / 0.12);
+    --accent2: oklch(0.66 0.20 28);      /* warm orange-red */
+    --text: oklch(0.95 0.006 85);
+    --muted: oklch(0.55 0.014 85);
+    --radius: 10px;
+    --radius-lg: 16px;
   }
 
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "ss01", "cv11";
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -64,13 +68,15 @@
     letter-spacing: 0.15em;
     text-transform: uppercase;
     color: var(--accent);
+    background: var(--accent-soft);
     border: 1px solid var(--accent);
-    padding: 4px 10px;
+    border-radius: 999px;
+    padding: 5px 12px;
     margin-bottom: 32px;
   }
 
   h1 {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: clamp(52px, 10vw, 88px);
     font-weight: 800;
     line-height: 0.95;
@@ -96,19 +102,20 @@
     align-items: center;
     gap: 10px;
     background: var(--accent);
-    color: #000;
-    font-family: 'Syne', sans-serif;
+    color: #1a1100;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     padding: 16px 32px;
     border: none;
+    border-radius: var(--radius);
     cursor: pointer;
     transition: all 0.15s;
   }
 
-  .btn-primary:hover { background: #f5ff60; transform: translateY(-1px); }
+  .btn-primary:hover { background: oklch(0.86 0.20 85); transform: translateY(-1px); }
   .btn-primary:active { transform: translateY(0); }
 
   .btn-secondary {
@@ -138,7 +145,7 @@
 
   .stat-item { display: flex; flex-direction: column; gap: 4px; }
   .stat-num {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: 28px;
     font-weight: 800;
     color: var(--accent);
@@ -181,7 +188,7 @@
   }
 
   .q-text {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: clamp(22px, 4vw, 32px);
     font-weight: 700;
     line-height: 1.2;
@@ -199,9 +206,11 @@
     gap: 14px;
     background: var(--surface);
     border: 1px solid var(--border);
+    border-radius: var(--radius);
     color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
     padding: 16px 20px;
     cursor: pointer;
     transition: all 0.15s;
@@ -209,7 +218,7 @@
   }
 
   .option-btn:hover { border-color: var(--accent); background: var(--surface2); }
-  .option-btn.selected { border-color: var(--accent); background: #1a1e05; color: var(--accent); }
+  .option-btn.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 
   .option-icon {
     font-size: 18px;
@@ -235,6 +244,7 @@
   .btn-back {
     background: transparent;
     border: 1px solid var(--border);
+    border-radius: var(--radius);
     color: var(--muted);
     font-family: 'DM Mono', monospace;
     font-size: 12px;
@@ -250,7 +260,7 @@
   .email-wrap { max-width: 480px; }
 
   .email-wrap h2 {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: clamp(28px, 5vw, 44px);
     font-weight: 800;
     line-height: 1.1;
@@ -275,9 +285,10 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-right: none;
+    border-radius: var(--radius) 0 0 var(--radius);
     color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
     padding: 14px 16px;
     outline: none;
     transition: border-color 0.15s;
@@ -295,7 +306,7 @@
   }
 
   .results-header h2 {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: clamp(24px, 4vw, 36px);
     font-weight: 800;
     line-height: 1.1;
@@ -309,17 +320,18 @@
   .idea-card {
     background: var(--surface);
     border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     padding: 24px;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
   }
 
-  .idea-card:hover { border-color: #444; }
+  .idea-card:hover { border-color: var(--muted); transform: translateY(-1px); }
 
   .idea-card.selected {
     border-color: var(--accent);
-    background: #141a03;
+    background: var(--accent-soft);
   }
 
   .idea-card.selected::after {
@@ -361,7 +373,7 @@
   .badge-diff-hard { border-color: #5a1a00; color: #e05a2b; }
 
   .idea-title {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: 18px;
     font-weight: 700;
     margin-bottom: 8px;
@@ -410,12 +422,38 @@
   .paywall-block {
     background: var(--surface);
     border: 1px solid var(--border);
-    padding: 32px;
+    border-radius: var(--radius-lg);
+    padding: 36px 32px 32px;
     text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .paywall-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% -10%, var(--accent-soft), transparent 60%);
+    pointer-events: none;
+  }
+  .paywall-block > * { position: relative; }
+
+  .sale-badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 5px 12px;
+    margin-bottom: 20px;
   }
 
   .paywall-block h3 {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: 22px;
     font-weight: 800;
     margin-bottom: 8px;
@@ -449,11 +487,35 @@
   .check { color: var(--accent); flex-shrink: 0; }
 
   .price-tag {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: 36px;
     font-weight: 800;
     color: var(--accent);
     margin-bottom: 4px;
+  }
+
+  .price-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+  .price-old {
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--muted);
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+  }
+  .price-new {
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    letter-spacing: -0.02em;
   }
 
   .price-sub { font-size: 11px; color: var(--muted); margin-bottom: 24px; }
@@ -470,7 +532,7 @@
   #screen-plan { display: none; padding: 60px 0 100px; }
 
   #screen-plan h2 {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: clamp(24px, 4vw, 36px);
     font-weight: 800;
     margin-bottom: 8px;
@@ -500,7 +562,7 @@
   }
 
   .plan-day-num {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: 22px;
     font-weight: 800;
     color: var(--muted);
@@ -592,7 +654,7 @@
       </div>
       <div class="stat-item">
         <span class="stat-num" id="counter-things">—</span>
-        <span class="stat-label">things shipped</span>
+        <span class="stat-label">ideas</span>
       </div>
       <div class="stat-item">
         <span class="stat-num">∞</span>
@@ -649,6 +711,7 @@
       <div class="ideas-list" id="ideas-list"></div>
       <p class="select-hint" id="select-hint">← Select at least one idea to unlock your plan</p>
       <div class="paywall-block">
+        <div class="sale-badge">🔥 Launch sale · limited time</div>
         <h3>Turn this into a full<br><span style="color:var(--accent)">30-day roadmap</span></h3>
         <p>Pick 1 or more ideas above. We'll build you a complete day-by-day plan — so the only thing left to do is ship.</p>
         <ul class="paywall-features">
@@ -658,10 +721,13 @@
           <li><span class="check">✓</span> Weekly theme structure (Foundation → Push → Risk → Ship)</li>
           <li><span class="check">✓</span> Access to the 30x30 Telegram community</li>
         </ul>
-        <div class="price-tag" style="text-decoration:line-through; opacity:0.45; font-size:1.4em;">€9</div>
-        <div class="price-sub" style="color:var(--accent); font-weight:600;">Free during launch week 🚀</div>
+        <div class="price-row">
+          <span class="price-old">€9</span>
+          <span class="price-new">€0</span>
+        </div>
+        <div class="price-sub">Normally €9 · free for the first wave of builders</div>
         <button class="btn-primary" onclick="unlockPlan()" style="width:100%; justify-content:center;">
-          Build my 30-day plan →
+          Claim my plan — free →
         </button>
       </div>
     </div>
@@ -1263,7 +1329,7 @@ function animateCounter(el, target, duration=1500) {
 window.addEventListener('load', () => {
   setTimeout(() => {
     animateCounter(document.getElementById('counter-builders'), 247);
-    animateCounter(document.getElementById('counter-things'), 1834);
+    animateCounter(document.getElementById('counter-things'), 1800);
   }, 400);
 
   // Handle Stripe redirect-back: ?paid=cs_… → verify, restore state, generate plan.
