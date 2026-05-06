@@ -476,9 +476,15 @@ function formatPlanEmail(name, plan) {
   <h1 style="font-size:30px;font-weight:800;color:#f0ece0;line-height:1.1;margin:0 0 8px;">Your 30-day plan<span style="color:#c8901a;">.</span></h1>
   <p style="color:#666;font-size:13px;margin:0 0 36px;line-height:1.6;">Hey ${name} — one thing per day. Ship it. Share it.</p>
   ${weeks}
-  <div style="margin-top:36px;padding-top:24px;border-top:1px solid #2a2620;text-align:center;">
+  <div style="margin-top:36px;padding:24px;border:1px solid #2a2620;border-radius:12px;text-align:center;background:#1a1814;">
+    <div style="font-size:10px;color:#c8901a;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;">Don't ship alone</div>
+    <p style="font-size:14px;color:#f0ece0;font-weight:600;margin:0 0 6px;line-height:1.4;">Join the 30x30 builders on Telegram</p>
+    <p style="font-size:12px;color:#888;margin:0 0 18px;line-height:1.5;">Share your daily build, ask for feedback, swipe ideas from other builders. Free, low-noise, builder-only.</p>
+    <a href="https://t.me/+MKofBg9wwuhiZGNk" style="display:inline-block;background:#c8901a;color:#100f0c;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:12px 28px;text-decoration:none;border-radius:6px;">Join the Telegram →</a>
+  </div>
+  <div style="margin-top:24px;padding-top:24px;border-top:1px solid #2a2620;text-align:center;">
     <p style="font-size:12px;color:#666;margin:0 0 16px;">Post your builds with <span style="color:#c8901a;">#30x30</span> on vibecode.fun</p>
-    <a href="https://vibecode.fun" style="display:inline-block;background:#c8901a;color:#100f0c;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:12px 28px;text-decoration:none;border-radius:6px;">Go to vibecode.fun →</a>
+    <a href="https://vibecode.fun" style="display:inline-block;background:transparent;color:#c8901a;font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:10px 22px;text-decoration:none;border:1px solid #c8901a;border-radius:6px;">Go to vibecode.fun →</a>
   </div>
   <p style="font-size:10px;color:#444;text-align:center;margin-top:28px;">
     <a href="https://30x30.midcurved.com" style="color:#444;text-decoration:none;">30x30.midcurved.com</a>
