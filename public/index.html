@@ -658,8 +658,8 @@
           <li><span class="check">✓</span> Weekly theme structure (Foundation → Push → Risk → Ship)</li>
           <li><span class="check">✓</span> Access to the 30x30 Telegram community</li>
         </ul>
-        <div class="price-tag">€9</div>
-        <div class="price-sub">one-time · no subscription</div>
+        <div class="price-tag" style="text-decoration:line-through; opacity:0.45; font-size:1.4em;">€9</div>
+        <div class="price-sub" style="color:var(--accent); font-weight:600;">Free during launch week 🚀</div>
         <button class="btn-primary" onclick="unlockPlan()" style="width:100%; justify-content:center;">
           Build my 30-day plan →
         </button>
@@ -1048,10 +1048,22 @@ function toggleIdea(i) {
 // ══════════════════════════════════════════════════════════════════════
 // FULL PLAN (PAID)
 // ══════════════════════════════════════════════════════════════════════
+// LAUNCH-WEEK BYPASS: Stripe Cards capability is pending approval (2-3 days).
+// Skip the /api/checkout redirect and go straight to plan generation.
+// Flip PAYWALL_ACTIVE = true once `wrangler secret list` confirms Cards is live
+// in the Stripe dashboard (Settings → Payment methods).
+const PAYWALL_ACTIVE = false;
+
 async function unlockPlan() {
   if (state.selectedIdeas.length === 0) {
     document.getElementById('select-hint').style.display = 'block';
     document.getElementById('select-hint').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+
+  if (!PAYWALL_ACTIVE) {
+    // Free during launch week — generate plan directly.
+    generateFullPlan();
     return;
   }
 
